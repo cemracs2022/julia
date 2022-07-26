@@ -132,7 +132,7 @@ y = ts[2]
 
 Q, R = qr(X)
 
-@show β = inv(factorize(R))Q'y
+@show β = (inv(R) * Q') * y
 
 #md # ---
 

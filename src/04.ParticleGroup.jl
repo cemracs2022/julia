@@ -145,11 +145,11 @@ vp = vcat([get_v(pg, i) for i in 1:pg.n_particles]'...)
 using Plots
 
 pp = plot(layout=(3,1))
-histogram!(pp[1,1], xp, normalize=true, bins = 100, lab=:x)
+histogram!(pp[1,1], xp, normalize=true, bins = 100, lab="x")
 plot!(pp[1,1], x -> (1+alpha*cos(kx*x))/(2π/kx), 0., 2π/kx, lab="")
-histogram!(pp[2,1], vp[:,1], normalize=true, bins = 100, lab=:vx)
+histogram!(pp[2,1], vp[:,1], normalize=true, bins = 100, lab="vx")
 plot!(pp[2,1], v -> exp( - v^2 / 2) * 4 / π^2 , -6, 6, lab="")
-histogram!(pp[3,1], vp[:,2], normalize=true, bins = 100, lab=:vy)
+histogram!(pp[3,1], vp[:,2], normalize=true, bins = 100, lab="vy")
 plot!(pp[3,1], v -> exp( - v^2 / 2) * 4 / π^2 , -6, 6, lab="")
 #md savefig("particles.svg"); nothing # hide
 
