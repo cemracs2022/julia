@@ -1,4 +1,4 @@
-#ENV["GKSwstype"]="100" #src
+ENV["GKSwstype"]="100" #src
 
 #md # # Who am I ?
 #md #
@@ -15,7 +15,6 @@
 #md #  ## Instructions to open the notebooks
 #md #
 #md #  https://github.com/cemracs2022/julia
-#md #  https://cemracs2022.github.io/julia
 #md #
 
 #md # ---
