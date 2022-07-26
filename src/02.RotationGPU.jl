@@ -199,31 +199,32 @@ if GPU_ENABLED
     function rotation_on_gpu( mesh :: Mesh, nt :: Int64, tf :: Float64)
         
         dt  = tf / nt
-        f   = CUDA.zeros(ComplexF64,(mesh.nx, mesh.ny))
+        f   = zeros(ComplexF64,(mesh.nx, mesh.ny))
         exact!( f, 0.0, mesh)
-        
-        p_x, pinv_x = plan_fft!(f,  [1]), plan_ifft!(f, [1])
-        p_y, pinv_y = plan_fft!(f,  [2]), plan_ifft!(f, [2])  
-        
-        exky = cu(exp.( 1im*tan(dt/2) .* mesh.x  .* mesh.ky'))
-        ekxy = cu(exp.(-1im*sin(dt)   .* mesh.y' .* mesh.kx ))
-        
+
+        d_f    = CuArray(f) # allocate f and create fft plans on GPU
+        p_x, pinv_x = plan_fft!(d_f,  [1]), plan_ifft!(d_f, [1])
+        p_y, pinv_y = plan_fft!(d_f,  [2]), plan_ifft!(d_f, [2])
+
+        d_exky = CuArray(exp.( 1im*tan(dt/2) .* mesh.x  .* mesh.ky'))
+        d_ekxy = CuArray(exp.(-1im*sin(dt)   .* mesh.y' .* mesh.kx ))
+
         for n = 1:nt
-            p_y * f
-            f .*= exky 
-            pinv_y * f
-            
-            p_x * f
-            f .*= ekxy 
-            pinv_x * f
-            
-            p_y * f
-            f .*= exky 
-            pinv_y * f
+            p_y * d_f
+            d_f .*= d_exky
+            pinv_y * d_f
+
+            p_x * d_f
+            d_f .*= d_ekxy
+            pinv_x * d_f
+
+            p_y * d_f
+            d_f .*= d_exky
+            pinv_y * d_f
         end
-        
-        real(collect(f)) # Transfer f from GPU to CPU
-        
+
+        real(collect(d_f)) # Transfer f from GPU to CPU
+
     end
 
 end
