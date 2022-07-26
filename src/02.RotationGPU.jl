@@ -156,7 +156,7 @@ end
 
 #md # Run the simulation and test error.
 
-mesh = Mesh( -π, π, 1024, -π, π, 1024)
+mesh = Mesh( -π, π, 2048, -π, π, 1024)
 
 nt, tf = 100, 20.
 
