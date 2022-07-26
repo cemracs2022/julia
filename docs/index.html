@@ -1,0 +1,1518 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Introduction to Julia language</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" type="text/css" href="style.css">
+  </head>
+  <body>
+    <textarea id="source">
+
+
+
+
+
+
+
+# Who am I ?
+
+
+  * My name is *Pierre Navaro*
+  * **Fortran 77 + PVM** : during my PhD 1998-2002 (Université du Havre)
+  * **Fortran 90-2003 + OpenMP-MPI** : Engineer in Strasbourg (2003-2015) at IRMA
+  * **Numpy + Cython, R + Rcpp** : Engineer in Rennes (2015-now) at IRMAR
+  * **Julia v1.0** since July 2018
+
+
+
+
+
+
+## Instructions to open the notebooks
+
+
+https://github.com/cemracs2022/julia
+
+
+---
+
+
+
+
+
+
+# Why Julia?
+
+
+  * Started in 2009 and first version was released in 2012.
+  * High-level languages like Python and R let one explore and experiment rapidly, but can run slow.
+  * Low-level languages like Fortran/C++ tend to take longer to develop, but run fast.
+  * This is sometimes called the "two language problem" and is something the Julia developers set out to eliminate.
+  * Julia's promise is to provide a "best of both worlds" experience for programmers who need to develop novel algorithms and bring them into production environments with minimal effort.
+
+
+**Julia: A Fresh Approach to Numerical Computing**
+
+
+*Jeff Bezanson, Alan Edelman, Stefan Karpinski, Viral B. Shah*
+
+
+SIAM Rev., 59(1), 65–98. (34 pages) 2012
+
+
+---
+
+
+
+
+
+
+# First example
+
+
+Implement your own numerical methods to solve
+
+
+$$ y'(t) = 1 - y(t),  t \in [0,5],  y(0) = 0. $$
+
+
+---
+
+
+
+
+
+
+## Explicit Euler
+
+
+```julia
+euler(f, t, y, h) = t + h, y + h * f(t, y)
+```
+
+
+```
+euler (generic function with 1 method)
+```
+
+
+
+
+
+
+## Runge-Kutta 2nd order
+
+
+```julia
+rk2(f, t, y, h) = begin
+    ỹ = y + h / 2 * f(t, y)
+    t + h, y + h * f(t + h / 2, ỹ)
+end
+```
+
+
+```
+rk2 (generic function with 1 method)
+```
+
+
+---
+
+
+
+
+
+
+## Runge-Kutta 4th order
+
+
+```julia
+function rk4(f, t, y, dt)
+
+    y₁ = dt * f(t, y)
+    y₂ = dt * f(t + dt / 2, y + y₁ / 2)
+    y₃ = dt * f(t + dt / 2, y + y₂ / 2)
+    y₄ = dt * f(t + dt, y + y₃)
+
+    t + dt, y + (y₁ + 2 * y₂ + 2 * y₃ + y₄) / 6
+
+end
+```
+
+
+```
+rk4 (generic function with 1 method)
+```
+
+
+---
+
+
+
+
+
+
+## Solve function
+
+
+```julia
+function dsolve(f, method, t₀, y₀, h, nsteps)
+
+    t = zeros(typeof(t₀), nsteps)
+    y = zeros(typeof(y₀), nsteps)
+
+    t[1] = t₀
+    y[1] = y₀
+
+    for i = 2:nsteps
+        t[i], y[i] = method(f, t[i-1], y[i-1], h)
+    end
+
+    t, y
+
+end
+```
+
+
+```
+dsolve (generic function with 1 method)
+```
+
+
+---
+
+
+
+
+
+
+## Plot solutions
+
+
+```julia
+using Plots
+
+nsteps, tfinal = 10, 5.0
+t₀, x₀ = 0.0, 0.0
+dt = tfinal / (nsteps - 1)
+f(t, x) = 1 - x
+
+t, y_euler = dsolve(f, euler, t₀, x₀, dt, nsteps)
+
+t, y_rk2 = dsolve(f, rk2, t₀, x₀, dt, nsteps)
+
+t, y_rk4 = dsolve(f, rk4, t₀, x₀, dt, nsteps)
+```
+
+
+```
+([0.0, 0.5555555555555556, 1.1111111111111112, 1.6666666666666667, 2.2222222222222223, 2.7777777777777777, 3.333333333333333, 3.8888888888888884, 4.444444444444444, 4.999999999999999], [0.0, 0.4258433673728598, 0.6703441612102632, 0.8107259136746093, 0.891327027951835, 0.9376046923112423, 0.9641753202456886, 0.979431022507319, 0.9881901851462188, 0.993219316471603])
+```
+
+
+---
+
+
+```julia
+plot(t, y_euler; marker = :o, label = "Euler")
+plot!(t, y_rk2; marker = :d, label = "RK2")
+plot!(t, y_rk4; marker = :p, label = "RK4")
+plot!(t -> 1 - exp(-t); line = 3, label = "true solution")
+```
+
+
+![dsolve1](dsolve1.png)
+
+
+---
+
+
+
+
+## Plot solutions
+
+
+```julia
+using Measurements
+
+t₀ = 0.0
+x₀ = 0.0 ± 0.2
+
+t, y_rk4 = dsolve(f, rk4, t₀, x₀, dt, nsteps)
+
+plot(t, y_rk4; marker = :p, label = "RK4")
+```
+
+
+![dsolve2](dsolve2.png)
+
+
+
+
+
+
+## GPU Computing
+
+
+https://github.com/JuliaGPU
+
+
+```julia
+using Plots, BenchmarkTools, FFTW, LinearAlgebra
+```
+
+
+
+
+
+
+### Advection equation for a rotation in two dimensional domain
+
+
+$$
+ \\frac{d f}{dt} +  (y \\frac{d f}{dx} - x \\frac{d f}{dy}) = 0
+$$
+
+
+$x \in [-π, π], y \in [-π, π]$ and  $t \in [0, 200π]$
+
+
+---
+
+
+
+
+
+
+# Composite type for mesh definition
+
+
+```julia
+struct Mesh
+
+    nx   :: Int64
+    ny   :: Int64
+    x    :: Vector{Float64}
+    y    :: Vector{Float64}
+    kx   :: Vector{Float64}
+    ky   :: Vector{Float64}
+
+    function Mesh( xmin, xmax, nx, ymin, ymax, ny)
+        # periodic boundary condition, we remove the end point.
+        x = LinRange(xmin, xmax, nx+1)[1:end-1]
+        y = LinRange(ymin, ymax, ny+1)[1:end-1]
+        kx  = 2π ./ (xmax-xmin) .* [0:nx÷2-1;nx÷2-nx:-1]
+        ky  = 2π ./ (ymax-ymin) .* [0:ny÷2-1;ny÷2-ny:-1]
+        new( nx, ny, x, y, kx, ky)
+    end
+end
+```
+
+
+---
+
+
+
+
+
+
+# Exact computation of solution
+
+
+```julia
+function exact!(f, time, mesh :: Mesh; shift=1.0)
+
+    for (i, x) in enumerate(mesh.x), (j, y) in enumerate(mesh.y)
+
+        xn = cos(time)*x - sin(time)*y - shift
+        yn = sin(time)*x + cos(time)*y - shift
+
+        f[i,j] = exp(-(xn^2+yn^2)/0.1)
+
+    end
+
+end
+```
+
+
+```
+exact! (generic function with 1 method)
+```
+
+
+---
+
+
+```julia
+"""
+    exact( time, mesh; shift=1.0)
+
+Computes the solution of the rotation problem
+
+"""
+function exact( time, mesh :: Mesh; shift=1.0)
+
+    f = zeros(Float64, (mesh.nx, mesh.ny))
+    exact!(f, time, mesh, shift = shift)
+    return f
+
+end
+```
+
+
+```
+Main.ex-index.exact
+```
+
+
+--
+
+
+```julia
+@doc exact
+```
+
+```
+exact( time, mesh; shift=1.0)
+```
+
+Computes the solution of the rotation problem
+
+
+---
+
+
+
+
+
+
+# Create animation to show what we compute
+
+
+```julia
+using Plots
+
+function animation( tf, nt)
+
+    mesh = Mesh( -π, π, 64, -π, π, 64)
+    dt = tf / nt
+    t = 0
+    f = zeros(Float64, (mesh.nx, mesh.ny))
+
+    anim = @animate for n=1:nt
+
+       exact!(f, t, mesh)
+       t += dt
+       p = contour(mesh.x, mesh.y, f, axis=[], framestyle=:none)
+       plot!(p[1]; clims=(0.,1.), aspect_ratio=:equal, colorbar=false, show=false)
+       plot!(√2 .* cos.(-π:0.1:π+0.1),
+             √2 .* sin.(-π:0.1:π+0.1), label="", show=false)
+       xlims!(-π,π)
+       ylims!(-π,π)
+
+    end
+
+    anim
+
+end
+```
+
+
+```
+animation (generic function with 1 method)
+```
+
+
+---
+
+
+```julia
+anim = animation( 2π, 100)
+gif(anim, "rotation2d.gif", fps = 20);
+```
+
+
+```
+┌ Info: Saved animation to
+└   fn = "/tmp/jl_ritk6M/build/rotation2d.gif"
+```
+
+
+![](rotation2d.gif)
+
+
+---
+
+
+```julia
+function rotation_on_cpu( mesh :: Mesh, nt :: Int64, tf :: Float64)
+
+    dt = tf / nt
+
+    f   = zeros(ComplexF64,(mesh.nx,mesh.ny))
+    exact!( f, 0.0, mesh )
+
+    exky = exp.( 1im*tan(dt/2) .* mesh.x  .* mesh.ky')
+    ekxy = exp.(-1im*sin(dt)   .* mesh.y' .* mesh.kx )
+
+    p_x, pinv_x = plan_fft!(f,  [1]), plan_ifft!(f, [1])
+    p_y, pinv_y = plan_fft!(f,  [2]), plan_ifft!(f, [2])
+
+    for n = 1:nt
+        p_y * f
+        f .*= exky
+        pinv_y * f
+
+        p_x * f
+        f .*= ekxy
+        pinv_x * f
+
+        p_y * f
+        f .*= exky
+        pinv_y * f
+    end
+
+    real(f)
+
+end
+```
+
+
+```
+rotation_on_cpu (generic function with 1 method)
+```
+
+
+---
+
+
+Run the simulation and test error.
+
+
+```julia
+mesh = Mesh( -π, π, 2048, -π, π, 1024)
+
+nt, tf = 100, 20.
+
+rotation_on_cpu(mesh, 1, 0.1) # trigger building
+
+etime = @time norm( rotation_on_cpu(mesh, nt, tf) .- exact( tf, mesh))
+
+println(etime)
+```
+
+
+```
+ 14.754256 seconds (17.45 k allocations: 144.958 MiB, 0.09% gc time, 0.10% compilation time)
+6.155010684088094e-12
+```
+
+
+---
+
+
+
+
+
+
+# Test if GPU packages are installed
+
+
+```julia
+using CUDA
+
+GPU_ENABLED = CUDA.functional()
+
+if GPU_ENABLED
+
+    using CUDA.CUFFT
+
+    println(CUDA.name(CuDevice(0)))
+
+end
+```
+
+
+```
+Tesla V100S-PCIE-32GB
+```
+
+
+**JuliaGPU** GPU Computing in Julia
+
+
+https://juliagpu.org/
+
+
+---
+
+
+```julia
+if GPU_ENABLED
+
+    function rotation_on_gpu( mesh :: Mesh, nt :: Int64, tf :: Float64)
+
+        dt  = tf / nt
+        f   = zeros(ComplexF64,(mesh.nx, mesh.ny))
+        exact!( f, 0.0, mesh)
+
+        d_f    = CuArray(f) # allocate f and create fft plans on GPU
+        p_x, pinv_x = plan_fft!(d_f,  [1]), plan_ifft!(d_f, [1])
+        p_y, pinv_y = plan_fft!(d_f,  [2]), plan_ifft!(d_f, [2])
+
+        d_exky = CuArray(exp.( 1im*tan(dt/2) .* mesh.x  .* mesh.ky'))
+        d_ekxy = CuArray(exp.(-1im*sin(dt)   .* mesh.y' .* mesh.kx ))
+
+        for n = 1:nt
+            p_y * d_f
+            d_f .*= d_exky
+            pinv_y * d_f
+
+            p_x * d_f
+            d_f .*= d_ekxy
+            pinv_x * d_f
+
+            p_y * d_f
+            d_f .*= d_exky
+            pinv_y * d_f
+        end
+
+        real(collect(d_f)) # Transfer f from GPU to CPU
+
+    end
+
+end
+```
+
+
+```
+rotation_on_gpu (generic function with 1 method)
+```
+
+
+---
+
+
+```julia
+if GPU_ENABLED
+
+    nt, tf = 100, 20.
+
+    rotation_on_gpu(mesh, 1, 0.1)
+
+    etime = @time norm( rotation_on_gpu(mesh, nt, tf) .- exact( tf, mesh))
+
+    println(etime)
+
+end
+```
+
+
+```
+  0.541239 seconds (8.30 k allocations: 208.557 MiB, 1.91% gc time)
+6.842308156967668e-12
+```
+
+
+---
+
+
+
+
+
+
+# Time Series
+
+
+```julia
+struct TimeSeries{T,N}
+
+   nt  :: Int
+   nv  :: Int
+   t   :: Vector{T}
+   u   :: Vector{Array{T, 1}}
+
+   function TimeSeries{T,N}( nt :: Int) where {T,N}
+
+       t  = zeros(T, nt)
+       u  = [zeros(T, N) for i in 1:nt]
+       nv = N
+
+       new( nt, nv, t, u)
+
+   end
+
+end
+```
+
+
+---
+
+
+
+
+
+
+## Overload `Base.length` function
+
+
+--
+
+
+```julia
+import Base:length
+
+length(ts :: TimeSeries) = ts.nt
+
+nt, nv = 100, 2
+ts = TimeSeries{Float64, nv}(nt);
+
+@show length(ts) == nt
+```
+
+
+```
+true
+```
+
+
+Generate data
+
+
+```julia
+ts.t[1] = 0.0
+ts.u[1] = [0.0, 1.0]
+
+dt = 0.01
+for i in 2:nt
+
+   ts.t[i] = ts.t[i-1] + dt
+   ts.u[i][1] = sin(ts.t[i])
+   ts.u[i][2] = cos(ts.t[i])
+
+end
+```
+
+
+---
+
+
+```julia
+using Plots
+
+plot(ts.t, vcat(ts.u'...))
+```
+
+
+![](plot1.svg)
+
+
+---
+
+
+```julia
+plot(ts.t, [getindex.(ts.u, i) for i in 1:nv])
+```
+
+
+![](plot2.svg)
+
+
+---
+
+
+
+
+
+
+## Overload the `[]` operator
+
+
+we want `ts[i]` equal to `ts.u[:][i]` values
+
+
+--
+
+
+```julia
+import Base: getindex
+```
+
+
+--
+
+
+```julia
+getindex( ts :: TimeSeries, i ) = getindex.(ts.u, i)
+```
+
+
+```
+getindex (generic function with 408 methods)
+```
+
+
+---
+
+
+```julia
+plot(ts[1], ts[2])
+```
+
+
+![](plot3.svg)
+
+
+---
+
+
+
+
+
+
+## Overload the `+` operator to add noise
+
+
+```julia
+import Base:+
+```
+
+
+--
+
+
+```julia
+function +(ts :: TimeSeries, ϵ )
+
+    for n in 1:ts.nt, d in 1:ts.nv
+       ts.u[n][d] += ϵ[n,d]
+    end
+    return ts
+
+end
+```
+
+
+```
++ (generic function with 376 methods)
+```
+
+
+---
+
+
+```julia
+ts = ts + 0.1*randn((nt,nv));
+```
+
+
+--
+
+
+```julia
+scatter(ts.t, [ts[1],ts[2]])
+```
+
+
+![](plot4.svg)
+
+
+---
+
+
+
+
+
+
+# Linear regression with obvious operation
+
+
+```julia
+using LinearAlgebra
+
+X = hcat(ones(nt), ts.t, ts[1])
+y = ts[2]
+
+@show β = inv(X'X) * X'y
+```
+
+
+```
+3-element Vector{Float64}:
+  1.0435300532672376
+ -0.5574721482411784
+  0.17563574720084826
+```
+
+
+---
+
+
+
+
+
+
+# Version with QR factorisation
+
+
+```julia
+@show β = X \ y
+```
+
+
+```
+3-element Vector{Float64}:
+  1.0435300532672367
+ -0.5574721482411772
+  0.17563574720084643
+```
+
+
+The `\` operator is the short-hand for
+
+
+```julia
+Q, R = qr(X)
+
+@show β = (inv(R) * Q') * y
+```
+
+
+```
+3-element Vector{Float64}:
+  1.0435300532672358
+ -0.5574721482411766
+  0.17563574720084607
+```
+
+
+---
+
+
+
+
+
+
+# Version with singular values decomposition
+
+
+```julia
+U, S, V = svd(X)
+
+@show β = V * diagm(1 ./ S) * U' * y
+```
+
+
+```
+3-element Vector{Float64}:
+  1.0435300532672365
+ -0.5574721482411771
+  0.17563574720084613
+```
+
+
+--
+
+
+```julia
+@show β = pinv(X, atol=1e-6) * y
+```
+
+
+```
+3-element Vector{Float64}:
+  1.0435300532672365
+ -0.5574721482411772
+  0.1756357472008465
+```
+
+
+---
+
+
+
+
+
+
+## With GLM.jl
+
+
+```julia
+using GLM
+
+fitted = lm(X, y)
+```
+
+
+```
+GLM.LinearModel{GLM.LmResp{Vector{Float64}}, GLM.DensePredChol{Float64, CholeskyPivoted{Float64, Matrix{Float64}}}}:
+
+Coefficients:
+─────────────────────────────────────────────────────────────────
+        Coef.  Std. Error      t  Pr(>|t|)   Lower 95%  Upper 95%
+─────────────────────────────────────────────────────────────────
+x1   1.04353    0.0224694  46.44    <1e-67   0.998935    1.08813
+x2  -0.557472   0.0945838  -5.89    <1e-07  -0.745195   -0.369749
+x3   0.175636   0.109262    1.61    0.1112  -0.0412201   0.392492
+─────────────────────────────────────────────────────────────────
+
+```
+
+
+---
+
+
+
+
+
+
+# Metaprogramming
+
+
+
+
+
+
+## The ParticleGroup example
+
+
+```julia
+"""
+    ParticleGroup{D,V}(n_particles, charge, mass)
+
+ - `D` : number of dimension in physical space
+ - `V` : number of dimension in phase space
+ - `n` : number of particles
+"""
+struct ParticleGroup{D,V}
+
+    n_particles       :: Int64
+    data              :: Array{Float64, 2}
+
+    function ParticleGroup{D,V}(n) where {D, V}
+
+        data = zeros( Float64, (D+V, n))
+        new( n, data)
+    end
+
+end
+```
+
+
+```
+Main.ex-index.ParticleGroup
+```
+
+
+---
+
+
+Set position of ith particle of p to x
+
+
+```julia
+@generated function set_x!( p :: ParticleGroup{D,V}, i,
+                            x :: Float64 ) where {D, V}
+
+    :(p.data[1, i] = x)
+
+end
+```
+
+
+```
+set_x! (generic function with 1 method)
+```
+
+
+--
+
+
+Set position of ith particle of p to x when x is a vector
+
+
+```julia
+@generated function set_x!( p :: ParticleGroup{D,V}, i,
+                            x :: Vector{Float64} ) where {D, V}
+
+     :(for j in 1:$D p.data[j, i] = x[j] end)
+
+end
+```
+
+
+```
+set_x! (generic function with 2 methods)
+```
+
+
+---
+
+
+Set velocity of ith particle of p to v
+
+
+```julia
+@generated function set_v!( p :: ParticleGroup{D,V}, i,
+                            v :: Float64 ) where {D, V}
+
+    :(p.data[$D+1, i] = v)
+
+end
+```
+
+
+```
+set_v! (generic function with 1 method)
+```
+
+
+--
+
+
+Set velocity of ith particle of p to v
+
+
+```julia
+@generated function set_v!( p :: ParticleGroup{D,V}, i,
+                            v :: Vector{Float64} ) where {D, V}
+
+    :(for j in 1:$V p.data[$D+j, i] = v[j] end)
+
+end
+```
+
+
+```
+set_v! (generic function with 2 methods)
+```
+
+
+---
+
+
+Get position of ith particle of p
+
+
+```julia
+@generated function get_x( p :: ParticleGroup{D,V}, i ) where {D, V}
+
+     :(p.data[1:$D, i])
+
+end
+```
+
+
+```
+get_x (generic function with 1 method)
+```
+
+
+Get velocity of ith particle of p
+
+
+```julia
+@generated function get_v( p :: ParticleGroup{D,V}, i ) where {D, V}
+
+     :(p.data[$D+1:$D+$V, i])
+end
+```
+
+
+```
+get_v (generic function with 1 method)
+```
+
+
+---
+
+
+```julia
+import Sobol
+```
+
+
+f(x,v) = 1/2π (1 + α cos (kx * x) * exp(-(vx^2+vy^2))
+
+
+```julia
+function landau_sampling!( pg :: ParticleGroup{1,2}, alpha, kx )
+
+    function newton(r)
+        x0, x1 = 0.0, 1.0
+        r *= 2π / kx
+        while (abs(x1-x0) > 1e-12)
+            p = x0 + alpha * sin( kx * x0) / kx
+            f = 1 + alpha * cos( kx * x0)
+            x0, x1 = x1, x0 - (p - r) / f
+        end
+        x1
+    end
+
+    s = Sobol.SobolSeq(2)
+    nbpart = pg.n_particles
+
+    for i=1:nbpart
+        v = sqrt(-2 * log( (i-0.5)/nbpart))
+        r1, r2 = Sobol.next!(s)
+        θ = r1 * 2π
+        set_x!(pg,  i, newton(r2))
+        set_v!(pg,  i, [v * cos(θ), v * sin(θ)])
+    end
+
+end
+```
+
+
+```
+landau_sampling! (generic function with 1 method)
+```
+
+
+---
+
+
+```julia
+n_particles = 10000
+pg = ParticleGroup{1,2}( n_particles)
+alpha, kx = 0.1, 0.5
+landau_sampling!(pg, alpha, kx)
+```
+
+
+--
+
+
+```julia
+xp = vcat([get_x(pg, i) for i in 1:pg.n_particles]...)
+vp = vcat([get_v(pg, i) for i in 1:pg.n_particles]'...)
+```
+
+
+```
+10000×2 Matrix{Float64}:
+ -4.4505        5.45029e-16
+ -7.70866e-16  -4.1964
+  2.4939e-16    4.07285
+ -2.82092       2.82092
+  2.77602      -2.77602
+ -2.73963      -2.73963
+  2.70897       2.70897
+  1.45172       3.50477
+ -1.43904      -3.47415
+  3.44671      -1.42768
+  ⋮            
+  0.0146796     0.0385387
+ -0.0137887    -0.0361999
+  0.0336995    -0.0128363
+ -0.0309982     0.0118074
+ -0.0122742     0.0273778
+  0.0108246    -0.0241444
+ -0.0204052    -0.0091482
+  0.0158054     0.00708599
+  0.00815159    0.00579259
+```
+
+
+---
+
+
+```julia
+using Plots
+
+pp = plot(layout=(3,1))
+histogram!(pp[1,1], xp, normalize=true, bins = 100, lab="x")
+plot!(pp[1,1], x -> (1+alpha*cos(kx*x))/(2π/kx), 0., 2π/kx, lab="")
+histogram!(pp[2,1], vp[:,1], normalize=true, bins = 100, lab="vx")
+plot!(pp[2,1], v -> exp( - v^2 / 2) * 4 / π^2 , -6, 6, lab="")
+histogram!(pp[3,1], vp[:,2], normalize=true, bins = 100, lab="vy")
+plot!(pp[3,1], v -> exp( - v^2 / 2) * 4 / π^2 , -6, 6, lab="")
+```
+
+
+![](particles.svg)
+
+
+---
+
+
+```julia
+histogram2d(vp[:,1], vp[:,2], normalize=true, bins=100)
+```
+
+
+![](hist2d.svg)
+
+
+---
+
+
+
+
+
+
+### Optimizing Julia code is often done at the expense of transparency
+
+
+```julia
+using Random, LinearAlgebra, BenchmarkTools
+
+A = rand(1024, 256); B = rand(256, 1024); C = rand(1024, 1024)
+
+function test1(A, B, C)
+    C = C - A * B
+    return C
+end
+
+@btime test1(A, B, C); #C, A and B are matrices.
+```
+
+
+```
+  2.996 ms (4 allocations: 16.00 MiB)
+```
+
+
+--
+
+
+```julia
+function test2!(C, A, B)
+    C .-= A * B
+end
+
+@btime test2!(C, A, B); #C, A and B are matrices.
+```
+
+
+```
+  2.427 ms (2 allocations: 8.00 MiB)
+```
+
+
+---
+
+
+```julia
+function test_opt!(C, A, B)
+    BLAS.gemm!('N','N', -1., A, B, 1., C)
+    return C
+end
+@btime test_opt!(C, A, B) # avoids taking two unnecessary copies of the matrix C.
+```
+
+
+```
+  904.221 μs (0 allocations: 0 bytes)
+```
+
+
+--
+
+
+```julia
+C = rand(1024, 1024)
+test2!(C, A, B)
+all(test1(A, B, C) .== C)
+```
+
+
+```
+false
+```
+
+
+--
+
+
+```julia
+C = rand(1024, 1024)
+test_opt!(C, A, B)
+all(test1(A, B, C) .== C)
+```
+
+
+```
+false
+```
+
+
+---
+
+
+
+
+
+
+### Derivative computation with FFT
+
+
+```julia
+using FFTW
+
+xmin, xmax, nx = 0, 4π, 1024
+ymin, ymax, ny = 0, 4π, 1024
+
+x = LinRange(xmin, xmax, nx+1)[1:end-1]
+y = LinRange(ymin, ymax, ny+1)[1:end-1]
+
+ky  = 2π ./ (ymax-ymin) .* [0:ny÷2-1;ny÷2-ny:-1]
+exky = exp.( 1im .* ky' .* x)
+
+function du_dy( u, exky )
+    ifft(exky .* fft(u, 2), 2)
+end
+
+u = sin.(x) .* cos.(y') # f is a 2d array created by broadcasting
+
+@btime du_dy(u, exky)
+```
+
+
+```
+  62.745 ms (55 allocations: 64.00 MiB)
+```
+
+
+---
+
+
+
+
+
+
+### Memory alignement, and inplace computation.
+
+
+```julia
+u  = zeros(ComplexF64, (nx,ny))
+uᵗ = zeros(ComplexF64, reverse(size(u)))
+ûᵗ = zeros(ComplexF64, reverse(size(u)))
+
+u .= sin.(x) .* cos.(y')
+
+fft_plan = plan_fft(uᵗ, 1, flags=FFTW.PATIENT)
+
+function du_dy!( u, uᵗ, ûᵗ, exky )
+    transpose!(uᵗ,u)
+    mul!(ûᵗ,  fft_plan, uᵗ)
+    ûᵗ .= ûᵗ .* exky
+    ldiv!(uᵗ, fft_plan, ûᵗ)
+    transpose!(u, uᵗ)
+end
+
+@btime du_dy!(u, uᵗ, ûᵗ, exky )
+```
+
+
+```
+  21.427 ms (2 allocations: 96 bytes)
+```
+
+
+---
+
+
+
+
+
+
+# Why use Julia language!
+
+
+  * **You develop in the same language in which you optimize.**
+  * Packaging system is very efficient (3173 registered packages)
+  * PyPi (198,360 projects) R (14993 packages)
+  * It is very easy to create a package (easier than R and Python)
+  * It is very easy to use GPU device.
+  * Nice interface for Linear Algebra and Differential Equations
+  * Easy access to BLAS and LAPACK
+  * Julia talks to all major Languages - mostly without overhead!
+
+
+---
+
+
+
+
+
+
+# What's bad
+
+
+  * It is still hard to build shared library or executable from Julia code.
+  * Compilation times can be unbearable.
+  * Plotting takes time (20 seconds for the first plot)
+  * OpenMP is better than the Julia multithreading library but it is progressing.
+  * For parallelization, The Julia community seems to prefer the distributed processing approach.
+  * Does not work well with vectorized code, you need to do a lot of inplace computation to avoid memory allocations and use explicit views to avoid copy.
+  * Julia website proclaims that it is faster than Fortran but this is not true. But it is very close  and it is progressing.
+
+
+[What's Bad About Julia by Jeff Bezanson](https://www.youtube.com/watch?v=TPuJsgyu87U)
+
+
+---
+
+
+
+
+
+
+## Python-Julia benchmarks by Thierry Dumont
+
+
+https://github.com/Thierry-Dumont/BenchmarksPythonJuliaAndCo/wiki
+
+
+
+
+
+
+# Julia is a language made for Science.
+
+
+  * JuliaDiffEq – Differential equation solving and analysis.
+  * JuliaDiff – Differentiation tools.
+  * JuliaGeometry – Computational Geometry.
+  * JuliaGraphs – Graph Theory and Implementation.
+  * JuliaIntervals - Rigorous numerics with interval arithmetic & applications.
+  * JuliaMath – Mathematics made easy in Julia.
+  * JuliaOpt – Optimization.
+  * JuliaPolyhedra – Polyhedral computation.
+  * JuliaSparse – Sparse matrix solvers.
+  * JuliaStats – Statistics and Machine Learning.
+  * JuliaPlots - powerful convenience for visualization.
+  * JuliaGPU - GPU Computing for Julia.
+  * FluxML - The Elegant Machine Learning Stack.
+
+
+---
+
+
+*This page was generated using [Literate.jl](https://github.com/fredrikekre/Literate.jl).*
+
+    </textarea>
+
+    <script src="remark.min.js" type="text/javascript"></script>
+    <script src="katex.min.js"></script>
+    <script src="auto-render.min.js"></script>
+    <link rel="stylesheet" href="katex.min.css">
+    <script type="text/javascript">
+        var options = {};
+        var renderMath = function() {
+        // renderMathInElement(document.body);
+        // or if you want to use $...$ for math,
+        renderMathInElement(document.body, {delimiters: [ // mind the order of delimiters(!?)
+            {left: "$$", right: "$$", display: true},
+            {left: "$", right: "$", display: false},
+            {left: "\\[", right: "\\]", display: true},
+            {left: "\\(", right: "\\)", display: false},
+        ]});
+        }
+
+        var slideshow = remark.create(options, renderMath);
+
+        </script>
+  </body>
+</html>
