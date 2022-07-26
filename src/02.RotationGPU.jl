@@ -31,8 +31,8 @@ struct Mesh
         ## periodic boundary condition, we remove the end point.
         x = LinRange(xmin, xmax, nx+1)[1:end-1]
         y = LinRange(ymin, ymax, ny+1)[1:end-1]
-        kx  = 2π ./ (xmax-xmin) .* fftfreq(nx, nx) #[0:nx÷2-1;nx÷2-nx:-1]
-        ky  = 2π ./ (ymax-ymin) .* [0:ny÷2-1;ny÷2-ny:-1]
+        kx  = 2π ./ (xmax-xmin) .* fftfreq(nx, nx) 
+        ky  = 2π ./ (ymax-ymin) .* fftfreq(ny, ny)
         new( nx, ny, x, y, kx, ky)
     end
 end
@@ -129,23 +129,24 @@ function rotation_on_cpu( mesh :: Mesh, nt :: Int64, tf :: Float64)
     
     exky = exp.( 1im*tan(dt/2) .* mesh.x  .* mesh.ky')
     ekxy = exp.(-1im*sin(dt)   .* mesh.y' .* mesh.kx )
-    
+
+    p_x, pinv_x = plan_fft!(f,  [1]), plan_ifft!(f, [1])
+    p_y, pinv_y = plan_fft!(f,  [2]), plan_ifft!(f, [2])  
+        
     for n = 1:nt
-        
-        fft!(f, 2)
-        f .= exky .* f 
-        ifft!(f,2)
-        
-        fft!(f, 1)  
-        f .= ekxy .* f
-        ifft!(f, 1)
-        
-        fft!(f, 2)
-        f .= exky .* f
-        ifft!(f, 2)
-        
+        p_y * f
+        f .*= exky 
+        pinv_y * f
+            
+        p_x * f
+        f .*= ekxy 
+        pinv_x * f
+            
+        p_y * f
+        f .*= exky 
+        pinv_y * f
     end
-    
+
     real(f)
     
 end
@@ -179,7 +180,7 @@ GPU_ENABLED = CUDA.functional()
 
 if GPU_ENABLED
 
-    using CuArrays, CuArrays.CUFFT
+    using CUDA.CUFFT
     
     println(CUDA.name(CuDevice(0)))
 
@@ -198,31 +199,30 @@ if GPU_ENABLED
     function rotation_on_gpu( mesh :: Mesh, nt :: Int64, tf :: Float64)
         
         dt  = tf / nt
-        f   = zeros(ComplexF64,(mesh.nx, mesh.ny))
+        f   = CUDA.zeros(ComplexF64,(mesh.nx, mesh.ny))
         exact!( f, 0.0, mesh)
         
-        d_f    = CuArray(f) # allocate f and create fft plans on GPU
-        p_x, pinv_x = plan_fft!(d_f,  [1]), plan_ifft!(d_f, [1])
-        p_y, pinv_y = plan_fft!(d_f,  [2]), plan_ifft!(d_f, [2])  
+        p_x, pinv_x = plan_fft!(f,  [1]), plan_ifft!(f, [1])
+        p_y, pinv_y = plan_fft!(f,  [2]), plan_ifft!(f, [2])  
         
-        d_exky = CuArray(exp.( 1im*tan(dt/2) .* mesh.x  .* mesh.ky'))
-        d_ekxy = CuArray(exp.(-1im*sin(dt)   .* mesh.y' .* mesh.kx ))
+        exky = cu(exp.( 1im*tan(dt/2) .* mesh.x  .* mesh.ky'))
+        ekxy = cu(exp.(-1im*sin(dt)   .* mesh.y' .* mesh.kx ))
         
         for n = 1:nt
-            p_y * d_f
-            d_f .*= d_exky 
-            pinv_y * d_f
+            p_y * f
+            f .*= exky 
+            pinv_y * f
             
-            p_x * d_f
-            d_f .*= d_ekxy 
-            pinv_x * d_f
+            p_x * f
+            f .*= ekxy 
+            pinv_x * f
             
-            p_y * d_f
-            d_f .*= d_exky 
-            pinv_y * d_f
+            p_y * f
+            f .*= exky 
+            pinv_y * f
         end
         
-        real(collect(d_f)) # Transfer f from GPU to CPU
+        real(collect(f)) # Transfer f from GPU to CPU
         
     end
 

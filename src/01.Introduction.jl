@@ -14,7 +14,8 @@ ENV["GKSwstype"]="100" #src
 #md #
 #md #  ## Instructions to open the notebooks
 #md #
-#md #  https://gitlab.inria.fr/navarop/JuliaInriaTech
+#md #  https://github.com/cemracs2022/julia
+#md #  https://cemracs2022.github.io/julia
 #md #
 
 #md # ---
@@ -35,104 +36,90 @@ ENV["GKSwstype"]="100" #src
 #md # 
 #md # SIAM Rev., 59(1), 65–98. (34 pages) 2012
 
+#md # ---
+#
+#md # # First example
+#
+#md # Implement your own numerical methods to solve
+#
+#md # $$
+#md # y'(t) = 1 - y(t),  t \in [0,5],  y(0) = 0.
+#md # $$
 
 #md # ---
 
-#md # # Julia's Engineering and Design Tradoffs
-#md #
-#md # - Type structures cannot be changed after being created (less dynamism but memory layout can be optimized for)
-#md # - All functions are JIT compiled via LLVM (interactive lags but massive runtime improvements)
-#md # - All functions specialize on types of arguments (more compilation but give generic programming structures)
-#md # - Julia is interactive (use it like Python and R, but makes it harder to get binaries)
-#md # - Julia has great methods for handling mutation (more optimization opportunities like C/Fortran, but more cognitive burden)
-#md # - Julia's Base library and most packages are written in Julia, (you can understand the source, but learn a new package)
-#md # - Julia has expensive tooling for code generation and metaprogramming (concise and more optimizations, but some codes can be for experienced users)
-#md #
-#md # To me, this gives me a language with a lot of depth which works well for computationally-expensive scientific applications.
-#md #
-#md # [© ChrisRackaukas](https://www.youtube.com/watch?v=zJ3R6vOhibA&feature=em-uploademail)
+#md # ## Explicit Euler
 
-#md # ---
+euler(f, t, y, h) = t + h, y + h * f(t, y)
 
-#md # # Type-Dispatch Programming
-#md #
-#md # - Centered around implementing the generic template of the algorithm not around building representations of data.
-#md # - The data type choose how to efficiently implement the algorithm.
-#md # - With this feature share and reuse code is very easy
-#md #
-#md # [JuliaCon 2019 | The Unreasonable Effectiveness of Multiple Dispatch | Stefan Karpinski](https://youtu.be/kc9HwsxE1OY)
+#md # ## Runge-Kutta 2nd order
 
-#md # ---
-
-#md # # Simple gravity pendulum
-
-using DifferentialEquations, Plots
-
-g = 9.79 # Gravitational constants
-L = 1.00 # Length of the pendulum
-
-#Initial Conditions
-u₀ = [0, π / 60] # Initial speed and initial angle
-tspan = (0.0, 6.3) # time domain
-
-#Define the problem
-function simplependulum(du, u, p, t)
-    θ = u[1]
-    dθ = u[2]
-    du[1] = dθ
-    du[2] = -(g/L)*θ
+rk2(f, t, y, h) = begin
+    ỹ = y + h / 2 * f(t, y)
+    t + h, y + h * f(t + h / 2, ỹ)
 end
 
-#Pass to solvers
-prob = ODEProblem(simplependulum, u₀, tspan)
-sol = solve(prob, Tsit5(), reltol = 1e-6)
-#md nothing # hide
-
 #md # ---
 
-# Analytic and computed solution
-u = u₀[2] .* cos.(sqrt(g / L) .* sol.t)
+#md # ## Runge-Kutta 4th order
 
-scatter(sol.t, getindex.(sol.u, 2), label = "Numerical")
-plot!(sol.t, u, label = "Analytic")
-#md savefig("pendulum1.svg"); nothing # hide
+function rk4(f, t, y, dt)
 
-#md # ![](pendulum1.svg)
+    y₁ = dt * f(t, y)
+    y₂ = dt * f(t + dt / 2, y + y₁ / 2)
+    y₃ = dt * f(t + dt / 2, y + y₂ / 2)
+    y₄ = dt * f(t + dt, y + y₃)
 
-#md # ---
+    t + dt, y + (y₁ + 2 * y₂ + 2 * y₃ + y₄) / 6
 
-# [Numbers with Uncertainties](http://tutorials.juliadiffeq.org/html/type_handling/02-uncertainties.html)
-
-using Measurements
-
-g = 9.79 ± 0.02; # Gravitational constants
-L = 1.00 ± 0.01; # Length of the pendulum
-
-#Initial Conditions
-u₀ = [0 ± 0, π / 60 ± 0.01] # Initial speed and initial angle
-
-#Define the problem
-function simplependulum(du, u, p, t)
-    θ = u[1]
-    dθ = u[2]
-    du[1] = dθ
-    du[2] = -(g/L)*θ
 end
 
-#Pass to solvers
-prob = ODEProblem(simplependulum, u₀, tspan)
-sol = solve(prob, Tsit5(), reltol = 1e-6);
-nothing # hide
+#md # ---
+
+#md # ## Solve function
+
+function dsolve(f, method, t₀, y₀, h, nsteps)
+
+    t = zeros(Float64, nsteps)
+    y = similar(t)
+
+    t[1] = t₀
+    y[1] = y₀
+
+    for i = 2:nsteps
+        t[i], y[i] = method(f, t[i-1], y[i-1], h)
+    end
+
+    t, y
+
+end
 
 #md # ---
 
-# Analytic solution
-u = u₀[2] .* cos.(sqrt(g / L) .* sol.t)
+#md # ## Plot solutions
 
-plot(sol.t, getindex.(sol.u, 2), label = "Numerical")
-plot!(sol.t, u, label = "Analytic")
-#md savefig("pendulum2.svg"); nothing # hide
+using Plots
 
-#md # ![](pendulum2.svg)
+nsteps, tfinal = 7, 5.0
+t₀, x₀ = 0.0, 0.0
+dt = tfinal / (nsteps - 1)
+f(t, x) = 1 - x
 
-#md # ---
+t, y_euler = dsolve(f, euler, t₀, x₀, dt, nsteps)
+
+t, y_rk2 = dsolve(f, rk2, t₀, x₀, dt, nsteps)
+
+t, y_rk4 = dsolve(f, rk4, t₀, x₀, dt, nsteps)
+
+# ---
+
+plot(t, y_euler; marker = :o, label = "Euler")
+plot!(t, y_rk2; marker = :d, label = "RK2")
+plot!(t, y_rk4; marker = :p, label = "RK4")
+plot!(t -> 1 - exp(-t); line = 3, label = "true solution")
+savefig("dsolve.png") #hide
+# ![dsolve](dsolve.png)
+
+# ---
+
+#md 
