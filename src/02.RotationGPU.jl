@@ -63,6 +63,9 @@ end
 
 Computes the solution of the rotation problem
 
+```math
+\\frac{d f}{dt} +  (y \\frac{d f}{dx} - x \\frac{d f}{dy}) = 0
+```
 """
 function exact( time, mesh :: Mesh; shift=1.0)
    

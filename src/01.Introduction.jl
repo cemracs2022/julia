@@ -110,18 +110,16 @@ t, y_rk2 = dsolve(f, rk2, t₀, x₀, dt, nsteps)
 
 t, y_rk4 = dsolve(f, rk4, t₀, x₀, dt, nsteps)
 
-# ---
+#md # ---
 
 plot(t, y_euler; marker = :o, label = "Euler")
 plot!(t, y_rk2; marker = :d, label = "RK2")
 plot!(t, y_rk4; marker = :p, label = "RK4")
-plot!(t -> 1 - exp(-t); line = 3, label = "true solution")
+plot!(t -> 1 - exp(-t); line = 3, label = "true solution", legend = :right)
 savefig("dsolve1.png") #hide
 # ![dsolve1](dsolve1.png)
 
 #md # ---
-
-#md # ## Plot solutions
 
 using Measurements
 
@@ -130,8 +128,8 @@ x₀ = 0.0 ± 0.2
 
 t, y_rk4 = dsolve(f, rk4, t₀, x₀, dt, nsteps)
 
-plot(t, y_rk4; marker = :p, label = "RK4")
+plot(t, y_rk4; marker = :circle, label = "RK4", legend = :right)
 savefig("dsolve2.png") #hide
 # ![dsolve2](dsolve2.png)
 
-#md 
+#md # ---
