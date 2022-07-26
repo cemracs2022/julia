@@ -31,8 +31,8 @@ struct Mesh
         ## periodic boundary condition, we remove the end point.
         x = LinRange(xmin, xmax, nx+1)[1:end-1]
         y = LinRange(ymin, ymax, ny+1)[1:end-1]
-        kx  = 2π ./ (xmax-xmin) .* fftfreq(nx, nx) 
-        ky  = 2π ./ (ymax-ymin) .* fftfreq(ny, ny)
+        kx  = 2π ./ (xmax-xmin) .* [0:nx÷2-1;nx÷2-nx:-1]
+        ky  = 2π ./ (ymax-ymin) .* [0:ny÷2-1;ny÷2-ny:-1]
         new( nx, ny, x, y, kx, ky)
     end
 end
