@@ -1,4 +1,4 @@
-ENV["GKSwstype"]="100" #src
+#ENV["GKSwstype"]="100" #src
 
 #md # # Who am I ?
 #md #
@@ -80,8 +80,8 @@ end
 
 function dsolve(f, method, t₀, y₀, h, nsteps)
 
-    t = zeros(Float64, nsteps)
-    y = similar(t)
+    t = zeros(typeof(t₀), nsteps)
+    y = zeros(typeof(y₀), nsteps)
 
     t[1] = t₀
     y[1] = y₀
@@ -100,7 +100,7 @@ end
 
 using Plots
 
-nsteps, tfinal = 7, 5.0
+nsteps, tfinal = 10, 5.0
 t₀, x₀ = 0.0, 0.0
 dt = tfinal / (nsteps - 1)
 f(t, x) = 1 - x
@@ -117,9 +117,22 @@ plot(t, y_euler; marker = :o, label = "Euler")
 plot!(t, y_rk2; marker = :d, label = "RK2")
 plot!(t, y_rk4; marker = :p, label = "RK4")
 plot!(t -> 1 - exp(-t); line = 3, label = "true solution")
-savefig("dsolve.png") #hide
-# ![dsolve](dsolve.png)
+savefig("dsolve1.png") #hide
+# ![dsolve1](dsolve1.png)
 
-# ---
+#md # ---
+
+#md # ## Plot solutions
+
+using Measurements
+
+t₀ = 0.0
+x₀ = 0.0 ± 0.2
+
+t, y_rk4 = dsolve(f, rk4, t₀, x₀, dt, nsteps)
+
+plot(t, y_rk4; marker = :p, label = "RK4")
+savefig("dsolve2.png") #hide
+# ![dsolve2](dsolve2.png)
 
 #md 

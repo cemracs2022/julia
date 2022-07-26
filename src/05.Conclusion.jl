@@ -16,32 +16,33 @@ end
 
 # --
 
-function test2(A, B, C)
+function test2!(C, A, B)
     C .-= A * B
-    return C
 end
 
-@btime test2(A, B, C); #C, A and B are matrices. 
+@btime test2!(C, A, B); #C, A and B are matrices. 
 #md nothing # hide
 
 # ---
 
-function test_opt(A, B, C)
+function test_opt!(C, A, B)
     BLAS.gemm!('N','N', -1., A, B, 1., C)
     return C
 end
-@btime test_opt(A, B, C) # avoids taking two unnecessary copies of the matrix C.
+@btime test_opt!(C, A, B) # avoids taking two unnecessary copies of the matrix C.
 #md nothing # hide
 
 # --
 
 C = rand(1024, 1024)
-all(test1(A, B, C) .== test2(A, B, C))
+test2!(C, A, B)
+all(test1(A, B, C) .== C)
 
 # --
 
 C = rand(1024, 1024)
-all(test1(A, B, C) .== test_opt(A, B, C))
+test_opt!(C, A, B)
+all(test1(A, B, C) .== C)
 
 #md # ---
 
@@ -58,36 +59,36 @@ y = LinRange(ymin, ymax, ny+1)[1:end-1]
 ky  = 2π ./ (ymax-ymin) .* [0:ny÷2-1;ny÷2-ny:-1]
 exky = exp.( 1im .* ky' .* x)
 
-function df_dy( f, exky )
-    ifft(exky .* fft(f, 2), 2)
+function du_dy( u, exky )
+    ifft(exky .* fft(u, 2), 2)
 end
 
-f = sin.(x) .* cos.(y') # f is a 2d array created by broadcasting
+u = sin.(x) .* cos.(y') # f is a 2d array created by broadcasting
 
-@btime df_dy(f, exky)
+@btime du_dy(u, exky)
 #md nothing # hide
 
 #md # ---
 
 # ### Memory alignement, and inplace computation.
 
-f  = zeros(ComplexF64, (nx,ny)) 
-fᵗ = zeros(ComplexF64, reverse(size(f)))
-f̂ᵗ = zeros(ComplexF64, reverse(size(f)))
+u  = zeros(ComplexF64, (nx,ny)) 
+uᵗ = zeros(ComplexF64, reverse(size(u)))
+ûᵗ = zeros(ComplexF64, reverse(size(u)))
 
-f .= sin.(x) .* cos.(y')
+u .= sin.(x) .* cos.(y')
 
-fft_plan = plan_fft(fᵗ, 1, flags=FFTW.PATIENT)
+fft_plan = plan_fft(uᵗ, 1, flags=FFTW.PATIENT)
 
-function df_dy!( f, fᵗ, f̂ᵗ, exky )
-    transpose!(fᵗ,f)
-    mul!(f̂ᵗ,  fft_plan, fᵗ)
-    f̂ᵗ .= f̂ᵗ .* exky
-    ldiv!(fᵗ, fft_plan, f̂ᵗ)
-    transpose!(f, fᵗ)
+function du_dy!( u, uᵗ, ûᵗ, exky )
+    transpose!(uᵗ,u)
+    mul!(ûᵗ,  fft_plan, uᵗ)
+    ûᵗ .= ûᵗ .* exky
+    ldiv!(uᵗ, fft_plan, ûᵗ)
+    transpose!(u, uᵗ)
 end
 
-@btime df_dy!(f, fᵗ, f̂ᵗ, exky )
+@btime du_dy!(u, uᵗ, ûᵗ, exky )
 #md nothing # hide
 
 #md # ---
@@ -119,31 +120,11 @@ end
 
 #md # ---
 
-#md # ## So when should i use Julia?
-#md # 
-#md # - Now! If you need performance and plan to write your own libraries.
-#md # - In ~1-2 Years if you want a smooth deploy.
-#md # - In ~3-5 Years if you want a 100% smooth experience.
-#md 
-#md # ## Think Julia: How to Think Like a Computer Scientist
-#md #
-#md # https://github.com/BenLauwens/ThinkJulia.jl
-#md #
-#md # ---
-#md #
 #md # ## Python-Julia benchmarks by Thierry Dumont
 #md #
 #md # https://github.com/Thierry-Dumont/BenchmarksPythonJuliaAndCo/wiki
 #md 
-#md # ## Mailing Lists
-#md # - Rennes : https://listes.univ-rennes1.fr/wws/info/math-julia
-#md # - France : https://listes.services.cnrs.fr/wws/info/julia
-#md # - World : https://discourse.julialang.org
-#md # ---
-#md 
 #md # # Julia is a language made for Science.
-#md #
-#md #  [Some State of the Art Packages](http://www.stochasticlifestyle.com/some-state-of-the-art-packages-in-julia-v1-0)
 #md #
 #md #  * JuliaDiffEq – Differential equation solving and analysis.
 #md #  * JuliaDiff – Differentiation tools.
