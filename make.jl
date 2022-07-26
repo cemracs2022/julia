@@ -6,7 +6,7 @@ import Remark
 
 files =  filter( f -> startswith(f, "0"), readdir("src")) |> collect
 
-run(pipeline(`cat src/$files`; stdout="slides.jl" ))
-slides_path = joinpath("docs")
+slides_path = joinpath("src")
 mkpath(slides_path)
-s = Remark.slideshow("slides.jl", slides_path)
+run(pipeline(`cat src/$files`; stdout=joinpath(slides_path, "index.jl" )))
+s = Remark.slideshow(@__DIR__, title="Introduction to Julia language")
