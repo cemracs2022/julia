@@ -73,7 +73,7 @@ SIAM Rev., 59(1), 65–98. (34 pages) 2012
 Implement your own numerical methods to solve
 
 
-$$ y'(t) = 1 - y(t),  t \in [0,5],  y(0) = 0. $$
+$$ y'(t) = 1 - y(t) $$ $$ t \in [0,5] $$ $$ y(0) = 0. $$
 
 
 ---
@@ -134,7 +134,7 @@ function rk4(f, t, y, dt)
     y₃ = dt * f(t + dt / 2, y + y₂ / 2)
     y₄ = dt * f(t + dt, y + y₃)
 
-    t + dt, y + (y₁ + 2 * y₂ + 2 * y₃ + y₄) / 6
+    t + dt, y + (y₁ + 2y₂ + 2y₃ + y₄) / 6
 
 end
 ```
@@ -156,7 +156,7 @@ rk4 (generic function with 1 method)
 
 
 ```julia
-function dsolve(f, method, t₀, y₀, h, nsteps)
+function solve(f, method, t₀, y₀, h, nsteps)
 
     t = zeros(typeof(t₀), nsteps)
     y = zeros(typeof(y₀), nsteps)
@@ -175,7 +175,7 @@ end
 
 
 ```
-dsolve (generic function with 1 method)
+solve (generic function with 1 method)
 ```
 
 
@@ -197,11 +197,11 @@ t₀, x₀ = 0.0, 0.0
 dt = tfinal / (nsteps - 1)
 f(t, x) = 1 - x
 
-t, y_euler = dsolve(f, euler, t₀, x₀, dt, nsteps)
+t, y_euler = solve(f, euler, t₀, x₀, dt, nsteps)
 
-t, y_rk2 = dsolve(f, rk2, t₀, x₀, dt, nsteps)
+t, y_rk2 = solve(f, rk2, t₀, x₀, dt, nsteps)
 
-t, y_rk4 = dsolve(f, rk4, t₀, x₀, dt, nsteps)
+t, y_rk4 = solve(f, rk4, t₀, x₀, dt, nsteps)
 ```
 
 
@@ -217,19 +217,14 @@ t, y_rk4 = dsolve(f, rk4, t₀, x₀, dt, nsteps)
 plot(t, y_euler; marker = :o, label = "Euler")
 plot!(t, y_rk2; marker = :d, label = "RK2")
 plot!(t, y_rk4; marker = :p, label = "RK4")
-plot!(t -> 1 - exp(-t); line = 3, label = "true solution")
+plot!(t -> 1 - exp(-t); line = 3, label = "true solution", legend = :right)
 ```
 
 
-![dsolve1](dsolve1.png)
+![solve1](solve1.png)
 
 
 ---
-
-
-
-
-## Plot solutions
 
 
 ```julia
@@ -238,13 +233,16 @@ using Measurements
 t₀ = 0.0
 x₀ = 0.0 ± 0.2
 
-t, y_rk4 = dsolve(f, rk4, t₀, x₀, dt, nsteps)
+t, y_rk4 = solve(f, rk4, t₀, x₀, dt, nsteps)
 
-plot(t, y_rk4; marker = :p, label = "RK4")
+plot(t, y_rk4; marker = :circle, label = "RK4", legend = :right)
 ```
 
 
-![dsolve2](dsolve2.png)
+![solve2](solve2.png)
+
+
+---
 
 
 
@@ -343,21 +341,24 @@ exact! (generic function with 1 method)
 ---
 
 
-```julia
+````julia
 """
     exact( time, mesh; shift=1.0)
 
 Computes the solution of the rotation problem
 
+```math
+\\frac{d f}{dt} +  (y \\frac{d f}{dx} - x \\frac{d f}{dy}) = 0
+```
 """
-function exact( time, mesh :: Mesh; shift=1.0)
+function exact( T, time, mesh :: Mesh; shift=1.0)
 
-    f = zeros(Float64, (mesh.nx, mesh.ny))
+    f = zeros(T, (mesh.nx, mesh.ny))
     exact!(f, time, mesh, shift = shift)
     return f
 
 end
-```
+````
 
 
 ```
@@ -377,6 +378,10 @@ exact( time, mesh; shift=1.0)
 ```
 
 Computes the solution of the rotation problem
+
+$$
+\frac{d f}{dt} +  (y \frac{d f}{dx} - x \frac{d f}{dy}) = 0
+$$
 
 
 ---
@@ -434,7 +439,7 @@ gif(anim, "rotation2d.gif", fps = 20);
 
 ```
 ┌ Info: Saved animation to
-└   fn = "/tmp/jl_ritk6M/build/rotation2d.gif"
+└   fn = "/tmp/jl_gM1Aqh/build/rotation2d.gif"
 ```
 
 
@@ -449,8 +454,7 @@ function rotation_on_cpu( mesh :: Mesh, nt :: Int64, tf :: Float64)
 
     dt = tf / nt
 
-    f   = zeros(ComplexF64,(mesh.nx,mesh.ny))
-    exact!( f, 0.0, mesh )
+    f   = exact( ComplexF64, 0.0, mesh )
 
     exky = exp.( 1im*tan(dt/2) .* mesh.x  .* mesh.ky')
     ekxy = exp.(-1im*sin(dt)   .* mesh.y' .* mesh.kx )
@@ -496,14 +500,14 @@ nt, tf = 100, 20.
 
 rotation_on_cpu(mesh, 1, 0.1) # trigger building
 
-etime = @time norm( rotation_on_cpu(mesh, nt, tf) .- exact( tf, mesh))
+etime = @time norm( rotation_on_cpu(mesh, nt, tf) .- exact( Float64, tf, mesh))
 
 println(etime)
 ```
 
 
 ```
- 14.754256 seconds (17.45 k allocations: 144.958 MiB, 0.09% gc time, 0.10% compilation time)
+ 13.759591 seconds (439.42 k allocations: 166.531 MiB, 0.30% gc time, 1.50% compilation time)
 6.155010684088094e-12
 ```
 
@@ -553,31 +557,31 @@ if GPU_ENABLED
     function rotation_on_gpu( mesh :: Mesh, nt :: Int64, tf :: Float64)
 
         dt  = tf / nt
-        f   = zeros(ComplexF64,(mesh.nx, mesh.ny))
-        exact!( f, 0.0, mesh)
 
-        d_f    = CuArray(f) # allocate f and create fft plans on GPU
-        p_x, pinv_x = plan_fft!(d_f,  [1]), plan_ifft!(d_f, [1])
-        p_y, pinv_y = plan_fft!(d_f,  [2]), plan_ifft!(d_f, [2])
+        f   = CuArray(exact(ComplexF64, 0.0, mesh))
 
-        d_exky = CuArray(exp.( 1im*tan(dt/2) .* mesh.x  .* mesh.ky'))
-        d_ekxy = CuArray(exp.(-1im*sin(dt)   .* mesh.y' .* mesh.kx ))
+        exky = CuArray(exp.( 1im*tan(dt/2) .* mesh.x  .* mesh.ky'))
+        ekxy = CuArray(exp.(-1im*sin(dt)   .* mesh.y' .* mesh.kx ))
+
+        p_x, pinv_x = plan_fft!(f,  [1]), plan_ifft!(f, [1])
+        p_y, pinv_y = plan_fft!(f,  [2]), plan_ifft!(f, [2])
+
 
         for n = 1:nt
-            p_y * d_f
-            d_f .*= d_exky
-            pinv_y * d_f
+            p_y * f
+            f .*= exky
+            pinv_y * f
 
-            p_x * d_f
-            d_f .*= d_ekxy
-            pinv_x * d_f
+            p_x * f
+            f .*= ekxy
+            pinv_x * f
 
-            p_y * d_f
-            d_f .*= d_exky
-            pinv_y * d_f
+            p_y * f
+            f .*= exky
+            pinv_y * f
         end
 
-        real(collect(d_f)) # Transfer f from GPU to CPU
+        real(collect(f)) # Transfer f from GPU to CPU
 
     end
 
@@ -600,7 +604,7 @@ if GPU_ENABLED
 
     rotation_on_gpu(mesh, 1, 0.1)
 
-    etime = @time norm( rotation_on_gpu(mesh, nt, tf) .- exact( tf, mesh))
+    etime = @time norm( rotation_on_gpu(mesh, nt, tf) .- exact(Float64,  tf, mesh))
 
     println(etime)
 
@@ -609,7 +613,7 @@ end
 
 
 ```
-  0.541239 seconds (8.30 k allocations: 208.557 MiB, 1.91% gc time)
+  1.018341 seconds (330.23 k allocations: 225.893 MiB, 1.76% gc time, 46.38% compilation time)
 6.842308156967668e-12
 ```
 
@@ -748,7 +752,7 @@ getindex( ts :: TimeSeries, i ) = getindex.(ts.u, i)
 
 
 ```
-getindex (generic function with 408 methods)
+getindex (generic function with 385 methods)
 ```
 
 
@@ -794,7 +798,7 @@ end
 
 
 ```
-+ (generic function with 376 methods)
++ (generic function with 318 methods)
 ```
 
 
@@ -839,9 +843,9 @@ y = ts[2]
 
 ```
 3-element Vector{Float64}:
-  1.0435300532672376
- -0.5574721482411784
-  0.17563574720084826
+  1.0966820369080115
+ -0.5593692113272177
+  0.06278680050675639
 ```
 
 
@@ -862,9 +866,9 @@ y = ts[2]
 
 ```
 3-element Vector{Float64}:
-  1.0435300532672367
- -0.5574721482411772
-  0.17563574720084643
+  1.0966820369080128
+ -0.5593692113272363
+  0.06278680050677306
 ```
 
 
@@ -880,9 +884,9 @@ Q, R = qr(X)
 
 ```
 3-element Vector{Float64}:
-  1.0435300532672358
- -0.5574721482411766
-  0.17563574720084607
+  1.0966820369080135
+ -0.5593692113272365
+  0.06278680050677315
 ```
 
 
@@ -899,15 +903,15 @@ Q, R = qr(X)
 ```julia
 U, S, V = svd(X)
 
-@show β = V * diagm(1 ./ S) * U' * y
+@show β = V * Diagonal(1 ./ S) * U' * y
 ```
 
 
 ```
 3-element Vector{Float64}:
-  1.0435300532672365
- -0.5574721482411771
-  0.17563574720084613
+  1.0966820369080128
+ -0.5593692113272364
+  0.062786800506773
 ```
 
 
@@ -921,9 +925,9 @@ U, S, V = svd(X)
 
 ```
 3-element Vector{Float64}:
-  1.0435300532672365
- -0.5574721482411772
-  0.1756357472008465
+  1.0966820369080132
+ -0.5593692113272363
+  0.06278680050677282
 ```
 
 
@@ -945,15 +949,15 @@ fitted = lm(X, y)
 
 
 ```
-GLM.LinearModel{GLM.LmResp{Vector{Float64}}, GLM.DensePredChol{Float64, CholeskyPivoted{Float64, Matrix{Float64}}}}:
+GLM.LinearModel{GLM.LmResp{Vector{Float64}}, GLM.DensePredChol{Float64, LinearAlgebra.CholeskyPivoted{Float64, Matrix{Float64}}}}:
 
 Coefficients:
 ─────────────────────────────────────────────────────────────────
-        Coef.  Std. Error      t  Pr(>|t|)   Lower 95%  Upper 95%
+         Coef.  Std. Error      t  Pr(>|t|)  Lower 95%  Upper 95%
 ─────────────────────────────────────────────────────────────────
-x1   1.04353    0.0224694  46.44    <1e-67   0.998935    1.08813
-x2  -0.557472   0.0945838  -5.89    <1e-07  -0.745195   -0.369749
-x3   0.175636   0.109262    1.61    0.1112  -0.0412201   0.392492
+x1   1.09668     0.0205181  53.45    <1e-73   1.05596    1.1374
+x2  -0.559369    0.105904   -5.28    <1e-06  -0.769559  -0.349179
+x3   0.0627868   0.112179    0.56    0.5770  -0.159857   0.285431
 ─────────────────────────────────────────────────────────────────
 
 ```
@@ -1132,7 +1136,7 @@ import Sobol
 ```
 
 
-f(x,v) = 1/2π (1 + α cos (kx * x) * exp(-(vx^2+vy^2))
+$f(x,v) = 1/2π (1 + α cos (kx * x) * exp(-(vx^2+vy^2))$
 
 
 ```julia
@@ -1264,12 +1268,12 @@ function test1(A, B, C)
     return C
 end
 
-@btime test1(A, B, C); #C, A and B are matrices.
+@btime test1($A, $B, $C); #C, A and B are matrices.
 ```
 
 
 ```
-  2.996 ms (4 allocations: 16.00 MiB)
+  2.939 ms (4 allocations: 16.00 MiB)
 ```
 
 
@@ -1277,16 +1281,17 @@ end
 
 
 ```julia
-function test2!(C, A, B)
+function test2(A, B, C)
     C .-= A * B
+    return C
 end
 
-@btime test2!(C, A, B); #C, A and B are matrices.
+@btime test2($A, $B, $C); #C, A and B are matrices.
 ```
 
 
 ```
-  2.427 ms (2 allocations: 8.00 MiB)
+  2.423 ms (2 allocations: 8.00 MiB)
 ```
 
 
@@ -1294,31 +1299,16 @@ end
 
 
 ```julia
-function test_opt!(C, A, B)
+function test_opt(A, B, C)
     BLAS.gemm!('N','N', -1., A, B, 1., C)
     return C
 end
-@btime test_opt!(C, A, B) # avoids taking two unnecessary copies of the matrix C.
+@btime test_opt($A, $B, $C) # avoids taking two unnecessary copies of the matrix C.
 ```
 
 
 ```
-  904.221 μs (0 allocations: 0 bytes)
-```
-
-
---
-
-
-```julia
-C = rand(1024, 1024)
-test2!(C, A, B)
-all(test1(A, B, C) .== C)
-```
-
-
-```
-false
+  1.059 ms (0 allocations: 0 bytes)
 ```
 
 
@@ -1327,13 +1317,26 @@ false
 
 ```julia
 C = rand(1024, 1024)
-test_opt!(C, A, B)
-all(test1(A, B, C) .== C)
+all(test1(A, B, C) .== test2(A, B, C))
 ```
 
 
 ```
-false
+true
+```
+
+
+--
+
+
+```julia
+C = rand(1024, 1024)
+all(test1(A, B, C) .== test_opt(A, B, C))
+```
+
+
+```
+true
 ```
 
 
@@ -1363,14 +1366,14 @@ function du_dy( u, exky )
     ifft(exky .* fft(u, 2), 2)
 end
 
-u = sin.(x) .* cos.(y') # f is a 2d array created by broadcasting
+u = sin.(x) .* cos.(y') # 2d array created by broadcasting
 
-@btime du_dy(u, exky)
+@btime du_dy($u, $exky)
 ```
 
 
 ```
-  62.745 ms (55 allocations: 64.00 MiB)
+  59.047 ms (55 allocations: 64.00 MiB)
 ```
 
 
@@ -1401,12 +1404,12 @@ function du_dy!( u, uᵗ, ûᵗ, exky )
     transpose!(u, uᵗ)
 end
 
-@btime du_dy!(u, uᵗ, ûᵗ, exky )
+@btime du_dy!($u, $uᵗ, $ûᵗ, $exky )
 ```
 
 
 ```
-  21.427 ms (2 allocations: 96 bytes)
+  20.837 ms (2 allocations: 96 bytes)
 ```
 
 
