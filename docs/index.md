@@ -430,7 +430,7 @@ gif(anim, "rotation2d.gif", fps = 20);
 
 ```
 ┌ Info: Saved animation to
-└   fn = "/tmp/jl_gM1Aqh/build/rotation2d.gif"
+└   fn = "/tmp/jl_xZqz3M/build/rotation2d.gif"
 ```
 
 
@@ -498,7 +498,7 @@ println(etime)
 
 
 ```
- 13.759591 seconds (439.42 k allocations: 166.531 MiB, 0.30% gc time, 1.50% compilation time)
+ 14.459870 seconds (439.17 k allocations: 166.505 MiB, 0.28% gc time, 1.45% compilation time)
 6.155010684088094e-12
 ```
 
@@ -604,7 +604,7 @@ end
 
 
 ```
-  1.018341 seconds (330.23 k allocations: 225.893 MiB, 1.76% gc time, 46.38% compilation time)
+  0.492052 seconds (8.28 k allocations: 208.556 MiB, 3.55% gc time)
 6.842308156967668e-12
 ```
 
@@ -834,9 +834,9 @@ y = ts[2]
 
 ```
 3-element Vector{Float64}:
-  1.0966820369080115
- -0.5593692113272177
-  0.06278680050675639
+  1.0798191295837176
+ -0.3542373296335194
+ -0.09944123963055414
 ```
 
 
@@ -857,9 +857,9 @@ y = ts[2]
 
 ```
 3-element Vector{Float64}:
-  1.0966820369080128
- -0.5593692113272363
-  0.06278680050677306
+  1.0798191295837174
+ -0.3542373296335036
+ -0.09944123963056396
 ```
 
 
@@ -875,9 +875,9 @@ Q, R = qr(X)
 
 ```
 3-element Vector{Float64}:
-  1.0966820369080135
- -0.5593692113272365
-  0.06278680050677315
+  1.0798191295837176
+ -0.3542373296335034
+ -0.09944123963056428
 ```
 
 
@@ -900,9 +900,9 @@ U, S, V = svd(X)
 
 ```
 3-element Vector{Float64}:
-  1.0966820369080128
- -0.5593692113272364
-  0.062786800506773
+  1.0798191295837176
+ -0.35423732963350346
+ -0.09944123963056493
 ```
 
 
@@ -916,9 +916,9 @@ U, S, V = svd(X)
 
 ```
 3-element Vector{Float64}:
-  1.0966820369080132
- -0.5593692113272363
-  0.06278680050677282
+  1.079819129583718
+ -0.35423732963350363
+ -0.09944123963056438
 ```
 
 
@@ -943,13 +943,13 @@ fitted = lm(X, y)
 GLM.LinearModel{GLM.LmResp{Vector{Float64}}, GLM.DensePredChol{Float64, LinearAlgebra.CholeskyPivoted{Float64, Matrix{Float64}}}}:
 
 Coefficients:
-─────────────────────────────────────────────────────────────────
-         Coef.  Std. Error      t  Pr(>|t|)  Lower 95%  Upper 95%
-─────────────────────────────────────────────────────────────────
-x1   1.09668     0.0205181  53.45    <1e-73   1.05596    1.1374
-x2  -0.559369    0.105904   -5.28    <1e-06  -0.769559  -0.349179
-x3   0.0627868   0.112179    0.56    0.5770  -0.159857   0.285431
-─────────────────────────────────────────────────────────────────
+──────────────────────────────────────────────────────────────────
+         Coef.  Std. Error      t  Pr(>|t|)  Lower 95%   Upper 95%
+──────────────────────────────────────────────────────────────────
+x1   1.07982     0.0186634  57.86    <1e-76   1.04278    1.11686
+x2  -0.354237    0.0869095  -4.08    <1e-04  -0.526729  -0.181746
+x3  -0.0994412   0.0910654  -1.09    0.2775  -0.280181   0.0812984
+──────────────────────────────────────────────────────────────────
 
 ```
 
@@ -1127,7 +1127,7 @@ import Sobol
 ```
 
 
-$f(x,v) = 1/2π (1 + α cos (kx * x) * exp(-(vx^2+vy^2))$
+f(x,v) = 1/2π (1 + α cos (kx * x) * exp(-(vx²+vy²))
 
 
 ```julia
@@ -1264,7 +1264,7 @@ end
 
 
 ```
-  2.939 ms (4 allocations: 16.00 MiB)
+  3.092 ms (4 allocations: 16.00 MiB)
 ```
 
 
@@ -1282,7 +1282,7 @@ end
 
 
 ```
-  2.423 ms (2 allocations: 8.00 MiB)
+  2.413 ms (2 allocations: 8.00 MiB)
 ```
 
 
@@ -1299,7 +1299,7 @@ end
 
 
 ```
-  1.059 ms (0 allocations: 0 bytes)
+  979.645 μs (0 allocations: 0 bytes)
 ```
 
 
@@ -1364,7 +1364,7 @@ u = sin.(x) .* cos.(y') # 2d array created by broadcasting
 
 
 ```
-  59.047 ms (55 allocations: 64.00 MiB)
+  53.534 ms (55 allocations: 64.00 MiB)
 ```
 
 
@@ -1400,7 +1400,7 @@ end
 
 
 ```
-  20.837 ms (2 allocations: 96 bytes)
+  22.212 ms (2 allocations: 96 bytes)
 ```
 
 
@@ -1415,10 +1415,10 @@ end
 
 
   * **You develop in the same language in which you optimize.**
-  * Packaging system is very efficient (3173 registered packages)
-  * PyPi (198,360 projects) R (14993 packages)
+  * Packaging system is very efficient (7400 registered packages)
+  * PyPi (390,111 projects) R (18407 packages)
   * It is very easy to create a package (easier than R and Python)
-  * It is very easy to use GPU device.
+  * It is very easy to use GPU device and soon M1 (see Metal.jl).
   * Nice interface for Linear Algebra and Differential Equations
   * Easy access to BLAS and LAPACK
   * Julia talks to all major Languages - mostly without overhead!
@@ -1435,15 +1435,12 @@ end
 
 
   * It is still hard to build shared library or executable from Julia code.
-  * Compilation times can be unbearable.
-  * Plotting takes time (20 seconds for the first plot)
+  * Lattency when you import some packages. You must stay in the REPL.
+  * Plotting takes time (10 seconds for the first plot)
   * OpenMP is better than the Julia multithreading library but it is progressing.
-  * For parallelization, The Julia community seems to prefer the distributed processing approach.
-  * Does not work well with vectorized code, you need to do a lot of inplace computation to avoid memory allocations and use explicit views to avoid copy.
-  * Julia website proclaims that it is faster than Fortran but this is not true. But it is very close  and it is progressing.
-
-
-[What's Bad About Julia by Jeff Bezanson](https://www.youtube.com/watch?v=TPuJsgyu87U)
+  * With vectorized code, you need to do a lot of inplace computation to avoid memory allocations and use explicit views to avoid copy.
+  * Julia website proclaims that it is faster than C/Fortran but you must read carefully the [performance tips](https://docs.julialang.org/en/v1/manual/performance-tips/) before.
+  * Julia package registry is highly GitHub-dependent.
 
 
 ---
