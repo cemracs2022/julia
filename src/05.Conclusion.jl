@@ -11,38 +11,37 @@ function test1(A, B, C)
     return C
 end
 
-@btime test1(A, B, C); #C, A and B are matrices. 
+@btime test1($A, $B, $C); #C, A and B are matrices. 
 #md nothing # hide
 
 # --
 
-function test2!(C, A, B)
+function test2(A, B, C)
     C .-= A * B
+    return C
 end
 
-@btime test2!(C, A, B); #C, A and B are matrices. 
+@btime test2($A, $B, $C); #C, A and B are matrices. 
 #md nothing # hide
 
 # ---
 
-function test_opt!(C, A, B)
+function test_opt(A, B, C)
     BLAS.gemm!('N','N', -1., A, B, 1., C)
     return C
 end
-@btime test_opt!(C, A, B) # avoids taking two unnecessary copies of the matrix C.
+@btime test_opt($A, $B, $C) # avoids taking two unnecessary copies of the matrix C.
 #md nothing # hide
 
 # --
 
 C = rand(1024, 1024)
-test2!(C, A, B)
-all(test1(A, B, C) .== C)
+all(test1(A, B, C) .== test2(A, B, C))
 
 # --
 
 C = rand(1024, 1024)
-test_opt!(C, A, B)
-all(test1(A, B, C) .== C)
+all(test1(A, B, C) .== test_opt(A, B, C))
 
 #md # ---
 
@@ -63,9 +62,9 @@ function du_dy( u, exky )
     ifft(exky .* fft(u, 2), 2)
 end
 
-u = sin.(x) .* cos.(y') # f is a 2d array created by broadcasting
+u = sin.(x) .* cos.(y') # 2d array created by broadcasting
 
-@btime du_dy(u, exky)
+@btime du_dy($u, $exky)
 #md nothing # hide
 
 #md # ---
@@ -88,7 +87,7 @@ function du_dy!( u, uᵗ, ûᵗ, exky )
     transpose!(u, uᵗ)
 end
 
-@btime du_dy!(u, uᵗ, ûᵗ, exky )
+@btime du_dy!($u, $uᵗ, $ûᵗ, $exky )
 #md nothing # hide
 
 #md # ---

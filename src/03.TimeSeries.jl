@@ -140,7 +140,7 @@ Q, R = qr(X)
 
 U, S, V = svd(X)
 
-@show β = V * diagm(1 ./ S) * U' * y
+@show β = V * Diagonal(1 ./ S) * U' * y
 
 
 #md # --

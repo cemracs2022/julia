@@ -97,7 +97,7 @@ end
 
 import Sobol
  
-# f(x,v) = 1/2π (1 + α cos (kx * x) * exp(-(vx^2+vy^2))
+#md # ``f(x,v) = 1/2π (1 + α cos (kx * x) * exp(-(vx^2+vy^2))``
 
 function landau_sampling!( pg :: ParticleGroup{1,2}, alpha, kx )
     

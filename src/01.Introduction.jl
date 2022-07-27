@@ -42,7 +42,13 @@ ENV["GKSwstype"]="100" #src
 #md # Implement your own numerical methods to solve
 #
 #md # $$
-#md # y'(t) = 1 - y(t),  t \in [0,5],  y(0) = 0.
+#md # y'(t) = 1 - y(t) 
+#md # $$
+#md # $$
+#md # t \in [0,5]
+#md # $$
+#md # $$
+#md # y(0) = 0.
 #md # $$
 
 #md # ---
@@ -69,7 +75,7 @@ function rk4(f, t, y, dt)
     y₃ = dt * f(t + dt / 2, y + y₂ / 2)
     y₄ = dt * f(t + dt, y + y₃)
 
-    t + dt, y + (y₁ + 2 * y₂ + 2 * y₃ + y₄) / 6
+    t + dt, y + (y₁ + 2y₂ + 2y₃ + y₄) / 6
 
 end
 
@@ -77,7 +83,7 @@ end
 
 #md # ## Solve function
 
-function dsolve(f, method, t₀, y₀, h, nsteps)
+function solve(f, method, t₀, y₀, h, nsteps)
 
     t = zeros(typeof(t₀), nsteps)
     y = zeros(typeof(y₀), nsteps)
@@ -104,11 +110,11 @@ t₀, x₀ = 0.0, 0.0
 dt = tfinal / (nsteps - 1)
 f(t, x) = 1 - x
 
-t, y_euler = dsolve(f, euler, t₀, x₀, dt, nsteps)
+t, y_euler = solve(f, euler, t₀, x₀, dt, nsteps)
 
-t, y_rk2 = dsolve(f, rk2, t₀, x₀, dt, nsteps)
+t, y_rk2 = solve(f, rk2, t₀, x₀, dt, nsteps)
 
-t, y_rk4 = dsolve(f, rk4, t₀, x₀, dt, nsteps)
+t, y_rk4 = solve(f, rk4, t₀, x₀, dt, nsteps)
 
 #md # ---
 
@@ -116,8 +122,8 @@ plot(t, y_euler; marker = :o, label = "Euler")
 plot!(t, y_rk2; marker = :d, label = "RK2")
 plot!(t, y_rk4; marker = :p, label = "RK4")
 plot!(t -> 1 - exp(-t); line = 3, label = "true solution", legend = :right)
-savefig("dsolve1.png") #hide
-# ![dsolve1](dsolve1.png)
+savefig("solve1.png") #hide
+# ![solve1](solve1.png)
 
 #md # ---
 
@@ -126,10 +132,10 @@ using Measurements
 t₀ = 0.0
 x₀ = 0.0 ± 0.2
 
-t, y_rk4 = dsolve(f, rk4, t₀, x₀, dt, nsteps)
+t, y_rk4 = solve(f, rk4, t₀, x₀, dt, nsteps)
 
 plot(t, y_rk4; marker = :circle, label = "RK4", legend = :right)
-savefig("dsolve2.png") #hide
-# ![dsolve2](dsolve2.png)
+savefig("solve2.png") #hide
+# ![solve2](solve2.png)
 
 #md # ---

@@ -67,9 +67,9 @@ Computes the solution of the rotation problem
 \\frac{d f}{dt} +  (y \\frac{d f}{dx} - x \\frac{d f}{dy}) = 0
 ```
 """
-function exact( time, mesh :: Mesh; shift=1.0)
+function exact( T, time, mesh :: Mesh; shift=1.0)
    
-    f = zeros(Float64, (mesh.nx, mesh.ny))
+    f = zeros(T, (mesh.nx, mesh.ny))
     exact!(f, time, mesh, shift = shift)
     return f
 
@@ -127,8 +127,7 @@ function rotation_on_cpu( mesh :: Mesh, nt :: Int64, tf :: Float64)
     
     dt = tf / nt
     
-    f   = zeros(ComplexF64,(mesh.nx,mesh.ny))
-    exact!( f, 0.0, mesh )
+    f   = exact( ComplexF64, 0.0, mesh )
     
     exky = exp.( 1im*tan(dt/2) .* mesh.x  .* mesh.ky')
     ekxy = exp.(-1im*sin(dt)   .* mesh.y' .* mesh.kx )
@@ -165,7 +164,7 @@ nt, tf = 100, 20.
 
 rotation_on_cpu(mesh, 1, 0.1) # trigger building
 
-etime = @time norm( rotation_on_cpu(mesh, nt, tf) .- exact( tf, mesh))
+etime = @time norm( rotation_on_cpu(mesh, nt, tf) .- exact( Float64, tf, mesh))
 
 println(etime)
 #-
@@ -202,31 +201,31 @@ if GPU_ENABLED
     function rotation_on_gpu( mesh :: Mesh, nt :: Int64, tf :: Float64)
         
         dt  = tf / nt
-        f   = zeros(ComplexF64,(mesh.nx, mesh.ny))
-        exact!( f, 0.0, mesh)
 
-        d_f    = CuArray(f) # allocate f and create fft plans on GPU
-        p_x, pinv_x = plan_fft!(d_f,  [1]), plan_ifft!(d_f, [1])
-        p_y, pinv_y = plan_fft!(d_f,  [2]), plan_ifft!(d_f, [2])
+        f   = CuArray(exact(ComplexF64, 0.0, mesh))
 
-        d_exky = CuArray(exp.( 1im*tan(dt/2) .* mesh.x  .* mesh.ky'))
-        d_ekxy = CuArray(exp.(-1im*sin(dt)   .* mesh.y' .* mesh.kx ))
+        exky = CuArray(exp.( 1im*tan(dt/2) .* mesh.x  .* mesh.ky'))
+        ekxy = CuArray(exp.(-1im*sin(dt)   .* mesh.y' .* mesh.kx ))
+
+        p_x, pinv_x = plan_fft!(f,  [1]), plan_ifft!(f, [1])
+        p_y, pinv_y = plan_fft!(f,  [2]), plan_ifft!(f, [2])
+
 
         for n = 1:nt
-            p_y * d_f
-            d_f .*= d_exky
-            pinv_y * d_f
+            p_y * f
+            f .*= exky
+            pinv_y * f
 
-            p_x * d_f
-            d_f .*= d_ekxy
-            pinv_x * d_f
+            p_x * f
+            f .*= ekxy
+            pinv_x * f
 
-            p_y * d_f
-            d_f .*= d_exky
-            pinv_y * d_f
+            p_y * f
+            f .*= exky
+            pinv_y * f
         end
 
-        real(collect(d_f)) # Transfer f from GPU to CPU
+        real(collect(f)) # Transfer f from GPU to CPU
 
     end
 
@@ -241,7 +240,7 @@ if GPU_ENABLED
 
     rotation_on_gpu(mesh, 1, 0.1)
 
-    etime = @time norm( rotation_on_gpu(mesh, nt, tf) .- exact( tf, mesh))
+    etime = @time norm( rotation_on_gpu(mesh, nt, tf) .- exact(Float64,  tf, mesh))
 
     println(etime)
 
