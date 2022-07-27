@@ -95,10 +95,10 @@ end
 #md # # Why use Julia language!
 #md #
 #md # - **You develop in the same language in which you optimize.**
-#md # - Packaging system is very efficient (3173 registered packages)
-#md # - PyPi (198,360 projects) R (14993 packages)
+#md # - Packaging system is very efficient (7400 registered packages)
+#md # - PyPi (390,111 projects) R (18407 packages)
 #md # - It is very easy to create a package (easier than R and Python)
-#md # - It is very easy to use GPU device.
+#md # - It is very easy to use GPU device and soon M1 (see Metal.jl).
 #md # - Nice interface for Linear Algebra and Differential Equations
 #md # - Easy access to BLAS and LAPACK
 #md # - Julia talks to all major Languages - mostly without overhead!
@@ -108,14 +108,12 @@ end
 #md # # What's bad
 #md #
 #md # - It is still hard to build shared library or executable from Julia code.
-#md # - Compilation times can be unbearable.
-#md # - Plotting takes time (20 seconds for the first plot)
+#md # - Lattency when you import some packages. You must stay in the REPL.
+#md # - Plotting takes time (10 seconds for the first plot)
 #md # - OpenMP is better than the Julia multithreading library but it is progressing.
-#md # - For parallelization, The Julia community seems to prefer the distributed processing approach. 
-#md # - Does not work well with vectorized code, you need to do a lot of inplace computation to avoid memory allocations and use explicit views to avoid copy.
-#md # - Julia website proclaims that it is faster than Fortran but this is not true. But it is very close  and it is progressing.
-#md 
-#md # [What's Bad About Julia by Jeff Bezanson](https://www.youtube.com/watch?v=TPuJsgyu87U)
+#md # - With vectorized code, you need to do a lot of inplace computation to avoid memory allocations and use explicit views to avoid copy.
+#md # - Julia website proclaims that it is faster than C/Fortran but you must read carefully the [performance tips](https://docs.julialang.org/en/v1/manual/performance-tips/) before.
+#md # - Julia package registry is highly GitHub-dependent.
 
 #md # ---
 
