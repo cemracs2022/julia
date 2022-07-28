@@ -6,10 +6,7 @@ Link to [slides](https://cemracs2022.github.io/julia).
 
 To install Julia go to http://julialang.org/downloads/.
 
-- On MacOS you can use brew:
-```
-brew  install julia
-```
+- On MacOS you can use [brew](https://formulae.brew.sh/formula/julia)
 - On Linux use [Command line installer of the Julia Language](https://github.com/abelsiqueira/jill)
 
 To open the notebooks run them locally:
