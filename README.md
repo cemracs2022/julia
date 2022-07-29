@@ -1,5 +1,7 @@
 # Introduction to Julia language
 
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/cemracs2022/julia/HEAD)
+
 CEMRACS 2022 July, 28th Marseille France.
 
 Link to [slides](https://cemracs2022.github.io/julia).
